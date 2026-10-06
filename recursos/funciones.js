@@ -1,5 +1,4 @@
-
-        let html5QrCode = null;
+      let html5QrCode = null;
         let isScanning = false;
         let camerasList = [];
         let currentCameraIndex = 0;
@@ -7,8 +6,10 @@
         let currentHistoryFilter = 'all';
         let recentResultText = '';
         let generatedQrInstance = null;
+        let cameraCapabilities = null;
+        let currentZoom = 1;
 
-        const STORAGE_KEY = 'qr_master_pwa_history_v1';
+        const STORAGE_KEY = 'qr_master_pwa_history_v2';
         const THEME_KEY = 'qr_master_pwa_theme';
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -114,12 +115,17 @@
 
                 await html5QrCode.start(
                     selectedCamId,
-                    { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+                    { 
+                        fps: 10, 
+                        qrbox: { width: 200, height: 200 },
+                        aspectRatio: 1.0 
+                    },
                     onScanSuccess,
                     () => {}
                 );
 
                 isScanning = true;
+                initZoomControls();
                 showToast("Cámara iniciada", "fa-camera");
             } catch (err) {
                 console.error(err);
@@ -135,6 +141,7 @@
                 document.getElementById('startScanBtn').classList.remove('hidden');
                 document.getElementById('stopScanBtn').classList.add('hidden');
                 document.getElementById('cameraControls').classList.add('hidden');
+                document.getElementById('zoomControlContainer').classList.add('hidden');
             }
         }
 
@@ -145,8 +152,53 @@
             startScanner();
         }
 
+        function initZoomControls() {
+            try {
+                if (html5QrCode && typeof html5QrCode.getRunningTrackCapabilities === 'function') {
+                    cameraCapabilities = html5QrCode.getRunningTrackCapabilities();
+                    if (cameraCapabilities && cameraCapabilities.zoom) {
+                        const zoomRange = document.getElementById('zoomRange');
+                        zoomRange.min = cameraCapabilities.zoom.min || 1;
+                        zoomRange.max = cameraCapabilities.zoom.max || 5;
+                        zoomRange.step = cameraCapabilities.zoom.step || 0.1;
+                        zoomRange.value = cameraCapabilities.zoom.min || 1;
+                        currentZoom = parseFloat(zoomRange.value);
+                        document.getElementById('zoomLevelLabel').textContent = currentZoom.toFixed(1) + 'x';
+                        document.getElementById('zoomControlContainer').classList.remove('hidden');
+                    }
+                }
+            } catch (e) {
+                console.log("Zoom no soportado por este dispositivo/navegador", e);
+            }
+        }
+
+        async function onZoomSliderChange(val) {
+            currentZoom = parseFloat(val);
+            document.getElementById('zoomLevelLabel').textContent = currentZoom.toFixed(1) + 'x';
+            if (html5QrCode && typeof html5QrCode.applyVideoConstraints === 'function') {
+                try {
+                    await html5QrCode.applyVideoConstraints({
+                        advanced: [{ zoom: currentZoom }]
+                    });
+                } catch (e) {
+                    console.log("No se pudo aplicar el zoom", e);
+                }
+            }
+        }
+
+        function adjustZoom(delta) {
+            const zoomRange = document.getElementById('zoomRange');
+            let newVal = parseFloat(zoomRange.value) + delta;
+            const min = parseFloat(zoomRange.min);
+            const max = parseFloat(zoomRange.max);
+            if (newVal < min) newVal = min;
+            if (newVal > max) newVal = max;
+            zoomRange.value = newVal;
+            onZoomSliderChange(newVal);
+        }
+
         function onScanSuccess(decodedText) {
-            if(navigator.vibrate) navigator.vibrate(100);
+            // Nota: Se ha eliminado completamente la vibración (navigator.vibrate) por solicitud del usuario
             recentResultText = decodedText;
             saveToHistory(decodedText);
             displayRecentResult(decodedText);
