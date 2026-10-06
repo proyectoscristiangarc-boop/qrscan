@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Master - PWA Android Style</title>
+    <meta name="theme-color" content="#006837">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script src="recursos/diseno.js"></script>
+    <link rel="stylesheet" href="recursos/estllo.css">
+</head>
+<body class="bg-m3-surface dark:bg-m3-darkSurface text-m3-onSurface dark:text-m3-darkOnSurface min-h-full flex flex-col font-sans transition-colors duration-200">
+
+    <header class="sticky top-0 z-40 bg-m3-surface/90 dark:bg-m3-darkSurface/90 backdrop-blur-md px-4 py-3 flex justify-between items-center border-b border-m3-outline/10">
+        <div class="flex items-center space-x-3 max-w-md w-full mx-auto">
+            <div class="w-10 h-10 rounded-2xl bg-m3-primaryContainer dark:bg-m3-darkPrimaryContainer text-m3-onPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-qrcode text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base tracking-tight leading-tight">QR Master</h1>
+                <p class="text-[10px] font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Material You PWA</p>
+            </div>
+        </div>
+        
+        <div class="absolute right-4">
+            <button onclick="toggleTheme()" class="w-10 h-10 rounded-full hover:bg-m3-surfaceVariant/50 dark:hover:bg-m3-darkSurfaceVariant/50 flex items-center justify-center m3-ripple">
+                <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto px-4 pt-3 pb-28 space-y-4">
+
+        <!-- ================= PESTAÑA 1: ESCANEAR ================= -->
+        <section id="tabScan" class="space-y-4 animate-fade">
+            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
+                
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Visor Óptico
+                    </span>
+                    <div id="cameraControls" class="hidden">
+                        <button onclick="switchCamera()" class="text-[11px] bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer px-3 py-1 rounded-full font-medium flex items-center gap-1 m3-ripple">
+                            <i class="fa-solid fa-camera-rotate"></i> Cambiar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visor de Cámara -->
+                <div class="relative bg-black rounded-3xl overflow-hidden min-h-[260px] flex flex-col items-center justify-center shadow-inner">
+                    <div id="qr-reader" class="w-full"></div>
+                    
+                    <div id="scannerPlaceholder" class="p-6 text-center space-y-3 pointer-events-none">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-m3-primaryContainer/30 text-m3-primary dark:text-m3-darkPrimary flex items-center justify-center text-2xl animate-pulse">
+                            <i class="fa-solid fa-expand"></i>
+                        </div>
+                        <p class="text-xs text-slate-300 max-w-xs mx-auto">Centra el código QR dentro del recuadro para leerlo al instante.</p>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex flex-col gap-2.5">
+                    <button id="startScanBtn" onclick="startScanner()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 px-4 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-play"></i> Iniciar Escáner en Vivo
+                    </button>
+                    <button id="stopScanBtn" onclick="stopScanner()" class="hidden w-full bg-rose-600 text-white py-3.5 px-4 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-stop"></i> Detener Cámara
+                    </button>
+                    <label class="cursor-pointer w-full bg-m3-surfaceVariant/60 dark:bg-m3-darkSurfaceVariant/60 hover:bg-m3-surfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface py-3 px-4 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-2 border border-m3-outline/20">
+                        <i class="fa-solid fa-image text-m3-primary dark:text-m3-darkPrimary"></i>
+                        <span>Escanear Imagen de Galería</span>
+                        <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Resultado de Escaneo -->
+            <div id="recentResultCard" class="hidden bg-m3-primaryContainer/40 dark:bg-m3-darkPrimaryContainer/30 border border-m3-primary/30 rounded-3xl p-4 space-y-3 animate-fade">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i> Escaneo Exitoso
+                    </span>
+                    <span id="recentCategoryBadge" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary">
+                        URL
+                    </span>
+                </div>
+                <div id="recentText" class="p-3 bg-m3-surface dark:bg-m3-darkSurface rounded-2xl text-xs font-mono break-all border border-m3-outline/10 shadow-inner">
+                    -
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="copyRecentText()" class="flex-1 bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i> Copiar
+                    </button>
+                    <button id="recentActionBtn" onclick="openRecentLink()" class="flex-1 bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5 hidden">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PESTAÑA 2: GENERAR ================= -->
+        <section id="tabGenerate" class="hidden space-y-4 animate-fade">
+            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
+                <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5 px-1">
+                    <i class="fa-solid fa-pen-to-square"></i> Creador de QR
+                </span>
+
+                <!-- Chips selector de tipo -->
+                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
+                    <button onclick="setGenType('text')" id="genChip-text" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary whitespace-nowrap m3-ripple">Texto / URL</button>
+                    <button onclick="setGenType('wifi')" id="genChip-wifi" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Wi-Fi</button>
+                    <button onclick="setGenType('contact')" id="genChip-contact" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Contacto</button>
+                </div>
+
+                <!-- Formulario dinámico -->
+                <div id="genFormContainer" class="space-y-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-1">Texto o Enlace Web</label>
+                        <textarea id="genInputText" rows="3" placeholder="https://mi-sitio.com o nota..." class="w-full p-3 bg-m3-surface dark:bg-m3-darkSurface border border-m3-outline/40 rounded-2xl text-xs outline-none focus:border-m3-primary focus:border-2 transition resize-none"></textarea>
+                    </div>
+                </div>
+
+                <button onclick="generateQRCode()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generar Código QR
+                </button>
+            </div>
+
+            <!-- Resultado Generado -->
+            <div id="generatedCard" class="hidden bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-5 border border-m3-outline/15 flex flex-col items-center space-y-4 animate-fade">
+                <div id="qrcode" class="p-4 bg-white rounded-3xl shadow-md border border-slate-200"></div>
+                <div class="flex gap-2 w-full">
+                    <button onclick="downloadQRCode()" class="flex-1 bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Descargar Imagen
+                    </button>
+                    <button onclick="shareQRCode()" class="flex-1 bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-share-nodes"></i> Compartir
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PESTAÑA 3: HISTORIAL ================= -->
+        <section id="tabHistory" class="hidden space-y-4 animate-fade">
+            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Historial Reciente
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="exportHistoryJSON()" title="Exportar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button onclick="exportHistoryCSV()" title="Exportar CSV" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple">
+                            <i class="fa-solid fa-file-csv"></i>
+                        </button>
+                        <label title="Importar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple cursor-pointer">
+                            <i class="fa-solid fa-upload"></i>
+                            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importHistoryJSON(event)">
+                        </label>
+                        <button onclick="clearHistory()" title="Borrar todo" class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 text-xs flex items-center justify-center m3-ripple">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Buscador -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-m3-outline"></i>
+                    <input type="text" id="historySearch" oninput="renderHistory()" placeholder="Buscar en registros..." class="w-full pl-9 pr-4 py-2.5 bg-m3-surface dark:bg-m3-darkSurface border border-m3-outline/30 rounded-full text-xs outline-none focus:border-m3-primary transition">
+                </div>
+
+                <!-- Filtros Chips -->
+                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
+                    <button onclick="filterHistory('all')" id="histChip-all" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary whitespace-nowrap m3-ripple">Todos</button>
+                    <button onclick="filterHistory('url')" id="histChip-url" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">URLs</button>
+                    <button onclick="filterHistory('wifi')" id="histChip-wifi" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Wi-Fi</button>
+                    <button onclick="filterHistory('text')" id="histChip-text" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Texto</button>
+                </div>
+
+                <!-- Lista -->
+                <div id="historyList" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <!-- Dinámico -->
+                </div>
+
+                <div id="emptyHistoryState" class="text-center py-8 space-y-2 hidden">
+                    <i class="fa-solid fa-folder-open text-3xl text-m3-outline/40"></i>
+                    <p class="text-xs text-m3-onSurfaceVariant font-medium">No se encontraron registros en el historial.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notificación Toast Android -->
+    <div id="androidToast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-full text-xs font-medium shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+        <i id="toastIcon" class="fa-solid fa-circle-info text-m3-darkPrimary dark:text-m3-primary"></i>
+        <span id="toastMessage">Mensaje</span>
+    </div>
+
+    <!-- Bottom Navigation Bar (Material 3) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-m3-surface/95 dark:bg-m3-darkSurface/95 backdrop-blur-lg border-t border-m3-outline/10 z-40">
+        <div class="max-w-md mx-auto px-6 py-2 flex justify-around items-center">
+            
+            <button onclick="switchTab('Scan')" id="nav-Scan" class="flex flex-col items-center group w-20">
+                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer transition-all duration-200">
+                    <i class="fa-solid fa-camera text-sm"></i>
+                </div>
+                <span class="text-[11px] font-semibold mt-1 text-m3-onSurface dark:text-m3-darkOnSurface">Escanear</span>
+            </button>
+
+            <button onclick="switchTab('Generate')" id="nav-Generate" class="flex flex-col items-center group w-20">
+                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
+                    <i class="fa-solid fa-qrcode text-sm"></i>
+                </div>
+                <span class="text-[11px] font-medium mt-1 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Generar</span>
+            </button>
+
+            <button onclick="switchTab('History')" id="nav-History" class="flex flex-col items-center group w-20">
+                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
+                    <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                </div>
+                <span class="text-[11px] font-medium mt-1 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Historial</span>
+            </button>
+
+        </div>
+    </nav>
+
+</body>
+<script src="recursos/funciones.js"></script>
+</html>
