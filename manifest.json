@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "cg",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "cgjhd",
+  "start_url": "/https://proyectoscristiangarc-boop.github.io/utilidadeswebcg/",
+  "theme_color": "#ffffff"
+}
