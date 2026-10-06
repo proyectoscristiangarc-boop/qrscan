@@ -1,1 +1,34 @@
 
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        #qr-reader video {
+            object-fit: cover !important;
+            border-radius: 1.5rem;
+        }
+        #qr-reader {
+            border: none !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .m3-ripple {
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .m3-ripple:active {
+            transform: scale(0.97);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade {
+            animation: fadeIn 0.25s cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
