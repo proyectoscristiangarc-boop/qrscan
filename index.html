@@ -3,246 +3,917 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR Scan</title>
-    <meta name="theme-color" content="#006837">
+    <title>QR Master - Escáner & Historial Android Style</title>
+    <!-- Meta tags PWA -->
+    <meta name="theme-color" content="#006C4C">
+    <meta name="description" content="Escanea, genera y gestiona tus códigos QR de forma rápida y local.">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QR Master">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Roboto / Google Sans look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="recursos/estilo.css">
+    
+    <!-- Configuración personalizada de Tailwind estilo Material Design 3 (Android 14+) -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        m3: {
+                            // Light theme tokens
+                            primary: '#006C4C',
+                            onPrimary: '#FFFFFF',
+                            primaryContainer: '#89F8C7',
+                            onPrimaryContainer: '#002114',
+                            surface: '#F6FBF6',
+                            surfaceVariant: '#DCE5DD',
+                            onSurface: '#181D1A',
+                            onSurfaceVariant: '#404943',
+                            outline: '#707973',
+                            // Dark theme tokens
+                            darkPrimary: '#6CDBAC',
+                            darkOnPrimary: '#003825',
+                            darkPrimaryContainer: '#005238',
+                            darkOnPrimaryContainer: '#89F8C7',
+                            darkSurface: '#0F1512',
+                            darkSurfaceVariant: '#404943',
+                            darkOnSurface: '#E1E3DF',
+                            darkOnSurfaceVariant: '#C0C9C1',
+                            darkOutline: '#8A938C',
+                        }
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '2.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Estilos Material Design 3 y corrección estricta de cámara */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
 
-    <script src="recursos/diseno.js"></script>
+        /* Forzar que el video del lector QR llene perfectamente sin estirarse ni deformarse */
+        #qr-reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 1.5rem !important;
+        }
+        #qr-reader {
+            border: none !important;
+            background: transparent !important;
+        }
+        /* Ocultar elementos molestos inyectados por html5-qrcode */
+        #qr-reader__dashboard_section_csr span, 
+        #qr-reader__dashboard_section_csr button {
+            display: none !important;
+        }
 
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
+        /* Ripple / Press effect */
+        .m3-btn {
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+        }
+        .m3-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Material 3 Bottom Nav active indicator transition */
+        .nav-pill {
+            transition: width 0.3s cubic-bezier(0.2, 0, 0, 1), background-color 0.3s ease;
+        }
+    </style>
 </head>
-<body class="bg-m3-surface dark:bg-m3-darkSurface text-m3-onSurface dark:text-m3-darkOnSurface min-h-full flex flex-col font-sans transition-colors duration-200">
+<body class="bg-m3-surface dark:bg-m3-darkSurface text-m3-onSurface dark:text-m3-darkOnSurface min-h-full flex flex-col font-sans transition-colors duration-200 pb-24">
 
-    <header class="sticky top-0 z-40 bg-m3-surface/90 dark:bg-m3-darkSurface/90 backdrop-blur-md px-4 py-3 flex justify-between items-center border-b border-m3-outline/10">
-        <div class="flex items-center space-x-3 max-w-md w-full mx-auto">
-            <div class="w-10 h-10 rounded-2xl bg-m3-primaryContainer dark:bg-m3-darkPrimaryContainer text-m3-onPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer flex items-center justify-center shadow-sm">
+    <!-- Top App Bar (Material Design 3 Small Top App Bar) -->
+    <header class="sticky top-0 z-40 bg-m3-surface/90 dark:bg-m3-darkSurface/90 backdrop-blur-md px-4 py-3 flex justify-between items-center transition-colors">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-m3-primaryContainer dark:bg-m3-darkPrimaryContainer text-m3-onPrimaryContainer dark:text-m3-darkOnPrimaryContainer flex items-center justify-center shadow-sm">
                 <i class="fa-solid fa-qrcode text-lg"></i>
             </div>
             <div>
-                <h1 class="font-bold text-base tracking-tight leading-tight">QR Scan</h1>
-                <p class="text-[10px] font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Cristian Garcia</p>
+                <h1 class="font-bold text-lg tracking-tight leading-tight">QR Master</h1>
+                <p class="text-[11px] font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Herramientas QR Material</p>
             </div>
         </div>
         
-        <div class="absolute right-4">
-            <button onclick="toggleTheme()" class="w-10 h-10 rounded-full hover:bg-m3-surfaceVariant/50 dark:hover:bg-m3-darkSurfaceVariant/50 flex items-center justify-center m3-ripple">
-                <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+        <div class="flex items-center space-x-1">
+            <!-- Botón Modo Oscuro -->
+            <button id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-full hover:bg-m3-surfaceVariant/50 dark:hover:bg-m3-darkSurfaceVariant/50 text-m3-onSurface dark:text-m3-darkOnSurface flex items-center justify-center m3-btn">
+                <i id="themeIcon" class="fa-solid fa-moon text-base"></i>
             </button>
         </div>
     </header>
 
-    <main class="flex-1 max-w-md w-full mx-auto px-4 pt-3 pb-28 space-y-4">
+    <main class="flex-1 max-w-md w-full mx-auto px-4 pt-2 space-y-4">
 
-        <!-- ================= STREAMING_CHUNK:Rendering scan tab structure... ================= -->
-        <section id="tabScan" class="space-y-4 animate-fade">
-            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
+        <!-- ================= SECCIÓN DE ESCANEO ================= -->
+        <section id="scanSection" class="space-y-4">
+            <div class="bg-m3-surfaceVariant/30 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-5 border border-m3-outline/20 dark:border-m3-darkOutline/20 space-y-4 shadow-sm">
                 
                 <div class="flex items-center justify-between px-1">
-                    <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
-                        <i class="fa-solid fa-camera"></i> Visor Óptico
-                    </span>
-                    <div id="cameraControls" class="hidden flex items-center gap-2">
-                        <button onclick="switchCamera()" class="text-[11px] bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer px-3 py-1 rounded-full font-medium flex items-center gap-1 m3-ripple">
-                            <i class="fa-solid fa-camera-rotate"></i> Cambiar
+                    <h2 class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-2">
+                        <i class="fa-solid fa-camera"></i> Visor del Escáner
+                    </h2>
+                    <!-- Controles de Cámara (Voltear) -->
+                    <div id="cameraControls" class="hidden">
+                        <button onclick="switchCamera()" class="text-xs bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnPrimaryContainer px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium m3-btn">
+                            <i class="fa-solid fa-camera-rotate"></i> Voltear
                         </button>
                     </div>
                 </div>
 
-                <!-- Visor de Cámara sin distorsión de imagen -->
+                <!-- Visor del Escáner con proporción cuadrada perfecta (Aspect Square) -->
                 <div class="relative bg-black rounded-3xl overflow-hidden aspect-square w-full flex flex-col items-center justify-center shadow-inner">
-                    <div id="qr-reader" class="w-full h-full"></div>
+                    <div id="qr-reader" class="absolute inset-0 w-full h-full"></div>
                     
-                    <div id="scannerPlaceholder" class="absolute inset-0 p-6 text-center flex flex-col items-center justify-center space-y-3 pointer-events-none bg-black/40">
-                        <div class="w-16 h-16 mx-auto rounded-full bg-m3-primaryContainer/30 text-m3-primary dark:text-m3-darkPrimary flex items-center justify-center text-2xl animate-pulse">
+                    <div id="scannerPlaceholder" class="absolute inset-0 p-6 text-center flex flex-col items-center justify-center space-y-3 z-10 pointer-events-none">
+                        <div class="w-20 h-20 rounded-full bg-m3-primaryContainer/30 dark:bg-m3-darkPrimaryContainer/40 text-m3-primary dark:text-m3-darkPrimary flex items-center justify-center text-3xl">
                             <i class="fa-solid fa-expand"></i>
                         </div>
-                        <p class="text-xs text-slate-200 max-w-xs mx-auto">Centra el código QR dentro del recuadro para leerlo al instante.</p>
+                        <p class="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed">Inicia la cámara para escanear o selecciona una imagen desde la galería.</p>
                     </div>
                 </div>
 
-                <!-- Control de Zoom (Aparece cuando la cámara está activa y soporta zoom) -->
+                <!-- Control deslizante de Zoom (Aparece automáticamente si la cámara del celular lo soporta) -->
                 <div id="zoomControlContainer" class="hidden bg-m3-surface dark:bg-m3-darkSurface p-3 rounded-2xl border border-m3-outline/20 space-y-1.5">
-                    <div class="flex justify-between items-center text-xs px-1">
-                        <span class="font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant flex items-center gap-1.5">
-                            <i class="fa-solid fa-magnifying-glass-plus text-m3-primary dark:text-m3-darkPrimary"></i> Zoom de Cámara
-                        </span>
-                        <span id="zoomLevelLabel" class="font-bold text-m3-primary dark:text-m3-darkPrimary">1.0x</span>
+                    <div class="flex justify-between items-center text-xs font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-1">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-magnifying-glass-plus"></i> Zoom de Cámara</span>
+                        <span id="zoomValueText">1.0x</span>
                     </div>
                     <div class="flex items-center gap-3 px-1">
-                        <button onclick="adjustZoom(-0.5)" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface flex items-center justify-center text-xs m3-ripple font-bold">-</button>
-                        <input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1" oninput="onZoomSliderChange(this.value)" class="w-full accent-m3-primary cursor-pointer">
-                        <button onclick="adjustZoom(0.5)" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface flex items-center justify-center text-xs m3-ripple font-bold">+</button>
+                        <button onclick="adjustZoom(-0.5)" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface flex items-center justify-center text-xs font-bold m3-btn">-</button>
+                        <input type="range" id="zoomRangeInput" min="1" max="1" step="0.1" value="1" oninput="onZoomSliderChange(this.value)" class="w-full accent-m3-primary dark:accent-m3-darkPrimary cursor-pointer">
+                        <button onclick="adjustZoom(0.5)" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface flex items-center justify-center text-xs font-bold m3-btn">+</button>
                     </div>
                 </div>
 
-                <!-- Botones de Acción -->
-                <div class="flex flex-col gap-2.5">
-                    <button id="startScanBtn" onclick="startScanner()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 px-4 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
-                        <i class="fa-solid fa-play"></i> Iniciar Escáner en Vivo
+                <!-- Controles Principales estilo Material FAB / Buttons -->
+                <div class="flex flex-col gap-2.5 pt-1">
+                    <button id="startScanBtn" onclick="startScanner()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 px-4 rounded-full font-semibold shadow-md m3-btn flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-camera"></i> Activar Escáner
                     </button>
-                    <button id="stopScanBtn" onclick="stopScanner()" class="hidden w-full bg-rose-600 text-white py-3.5 px-4 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
-                        <i class="fa-solid fa-stop"></i> Detener Cámara
+
+                    <button id="stopScanBtn" onclick="stopScanner()" class="hidden w-full bg-rose-600 dark:bg-rose-500 text-white py-3.5 px-4 rounded-full font-semibold shadow-md m3-btn flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-square"></i> Detener Escáner
                     </button>
-                    <label class="cursor-pointer w-full bg-m3-surfaceVariant/60 dark:bg-m3-darkSurfaceVariant/60 hover:bg-m3-surfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface py-3 px-4 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-2 border border-m3-outline/20">
+                    
+                    <label class="cursor-pointer w-full bg-m3-surfaceVariant/60 dark:bg-m3-darkSurfaceVariant/60 hover:bg-m3-surfaceVariant dark:hover:bg-m3-darkSurfaceVariant text-m3-onSurface dark:text-m3-darkOnSurface py-3 px-4 rounded-full text-xs font-semibold m3-btn flex items-center justify-center gap-2 border border-m3-outline/20">
                         <i class="fa-solid fa-image text-m3-primary dark:text-m3-darkPrimary"></i>
-                        <span>Escanear Imagen de Galería</span>
+                        <span>Escanear desde Galería</span>
                         <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(event)">
                     </label>
                 </div>
             </div>
 
-            <!-- Resultado de Escaneo -->
-            <div id="recentResultCard" class="hidden bg-m3-primaryContainer/40 dark:bg-m3-darkPrimaryContainer/30 border border-m3-primary/30 rounded-3xl p-4 space-y-3 animate-fade">
+            <!-- Resultado Reciente de Escaneo (Material Sheet) -->
+            <div id="recentResultCard" class="hidden bg-m3-primaryContainer/40 dark:bg-m3-darkPrimaryContainer/30 border border-m3-primary/30 dark:border-m3-darkPrimary/30 rounded-3xl p-4 space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold uppercase tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check"></i> Escaneo Exitoso
+                        <i class="fa-solid fa-circle-check"></i> Resultado
                     </span>
                     <span id="recentCategoryBadge" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary">
-                        URL
+                        TEXTO
                     </span>
                 </div>
-                <div id="recentText" class="p-3 bg-m3-surface dark:bg-m3-darkSurface rounded-2xl text-xs font-mono break-all border border-m3-outline/10 shadow-inner">
+                <div id="recentText" class="p-3.5 bg-m3-surface dark:bg-m3-darkSurface rounded-2xl text-xs font-mono break-all text-m3-onSurface dark:text-m3-darkOnSurface shadow-inner border border-m3-outline/10">
                     -
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="copyRecentText()" class="flex-1 bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
+                <div class="flex gap-2 pt-1">
+                    <button onclick="copyRecentText()" class="flex-1 bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-2.5 px-3 rounded-full text-xs font-semibold m3-btn flex items-center justify-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-copy"></i> Copiar
                     </button>
-                    <button id="recentActionBtn" onclick="openRecentLink()" class="flex-1 bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5 hidden">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir
+                    <button id="recentActionBtn" onclick="openRecentLink()" class="flex-1 bg-m3-primaryContainer dark:bg-m3-darkPrimaryContainer text-m3-onPrimaryContainer dark:text-m3-darkOnPrimaryContainer py-2.5 px-3 rounded-full text-xs font-semibold m3-btn flex items-center justify-center gap-1.5 shadow-sm hidden">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Enlace
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- ================= STREAMING_CHUNK:Rendering generate tab structure... ================= -->
-        <section id="tabGenerate" class="hidden space-y-4 animate-fade">
-            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
-                <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5 px-1">
-                    <i class="fa-solid fa-pen-to-square"></i> Creador de QR
-                </span>
+        <!-- ================= SECCIÓN DE GENERADOR QR ================= -->
+        <section id="generateSection" class="hidden space-y-4">
+            <div class="bg-m3-surfaceVariant/30 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-5 border border-m3-outline/20 dark:border-m3-darkOutline/20 space-y-4 shadow-sm">
+                <h2 class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-2 px-1">
+                    <i class="fa-solid fa-pen-to-square"></i> Generar Código QR
+                </h2>
 
-                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
-                    <button onclick="setGenType('text')" id="genChip-text" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary whitespace-nowrap m3-ripple">Texto / URL</button>
-                    <button onclick="setGenType('wifi')" id="genChip-wifi" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Wi-Fi</button>
-                    <button onclick="setGenType('contact')" id="genChip-contact" class="gen-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Contacto</button>
+                <div class="space-y-3">
+                    <label class="block text-xs font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-1">
+                        Ingresa un texto o enlace URL:
+                    </label>
+                    <textarea id="qrInputText" rows="3" placeholder="https://ejemplo.com o cualquier texto..." class="w-full p-3.5 bg-m3-surface dark:bg-m3-darkSurface border border-m3-outline/40 dark:border-m3-darkOutline/40 rounded-2xl text-xs focus:ring-2 focus:ring-m3-primary focus:border-transparent outline-none transition text-m3-onSurface dark:text-m3-darkOnSurface resize-none"></textarea>
+                    
+                    <button onclick="generateQRCode()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 px-4 rounded-full font-semibold shadow-md m3-btn flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Crear QR
+                    </button>
                 </div>
 
-                <div id="genFormContainer" class="space-y-3">
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-medium text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-1">Texto o Enlace Web</label>
-                        <textarea id="genInputText" rows="3" placeholder="https://mi-sitio.com o nota..." class="w-full p-3 bg-m3-surface dark:bg-m3-darkSurface border border-m3-outline/40 rounded-2xl text-xs outline-none focus:border-m3-primary focus:border-2 transition resize-none"></textarea>
+                <!-- Visor de QR Generado -->
+                <div id="generatedQrContainer" class="hidden pt-4 flex flex-col items-center space-y-4 border-t border-m3-outline/20">
+                    <div id="qrcode" class="p-4 bg-white rounded-3xl shadow-md border border-slate-200"></div>
+                    <div class="flex gap-2 w-full">
+                        <button onclick="downloadQRCode()" class="flex-1 bg-m3-primaryContainer dark:bg-m3-darkPrimaryContainer text-m3-onPrimaryContainer dark:text-m3-darkOnPrimaryContainer py-2.5 px-3 rounded-full text-xs font-semibold m3-btn flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Descargar
+                        </button>
                     </div>
                 </div>
-
-                <button onclick="generateQRCode()" class="w-full bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary py-3.5 rounded-full font-semibold shadow-md m3-ripple flex items-center justify-center gap-2 text-xs">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generar Código QR
-                </button>
-            </div>
-
-            <div id="generatedCard" class="hidden bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-5 border border-m3-outline/15 flex flex-col items-center space-y-4 animate-fade">
-                <div id="qrcode" class="p-4 bg-white rounded-3xl shadow-md border border-slate-200"></div>
-                <div class="flex gap-2 w-full">
-                    <button onclick="downloadQRCode()" class="flex-1 bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-download"></i> Descargar Imagen
-                    </button>
-                    <button onclick="shareQRCode()" class="flex-1 bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant py-2.5 rounded-full text-xs font-semibold m3-ripple flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-share-nodes"></i> Compartir
-                    </button>
-                </div>
             </div>
         </section>
 
-        <!-- ================= STREAMING_CHUNK:Rendering history tab structure... ================= -->
-        <section id="tabHistory" class="hidden space-y-4 animate-fade">
-            <div class="bg-m3-surfaceVariant/20 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-4 border border-m3-outline/15 space-y-4 shadow-sm">
+        <!-- ================= SECCIÓN DE HISTORIAL ================= -->
+        <section id="historySection" class="hidden space-y-4">
+            
+            <div class="bg-m3-surfaceVariant/30 dark:bg-m3-darkSurfaceVariant/20 rounded-4xl p-5 border border-m3-outline/20 dark:border-m3-darkOutline/20 space-y-4 shadow-sm">
                 <div class="flex justify-between items-center px-1">
-                    <span class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Historial Reciente
-                    </span>
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="exportHistoryJSON()" title="Exportar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple">
+                    <h2 class="text-xs uppercase font-bold tracking-wider text-m3-primary dark:text-m3-darkPrimary flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Historial Guardado
+                    </h2>
+                    <!-- Acciones rápidas de historial -->
+                    <div class="flex items-center gap-1">
+                        <button onclick="exportHistoryJSON()" title="Exportar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant text-xs flex items-center justify-center m3-btn">
                             <i class="fa-solid fa-download"></i>
                         </button>
-                        <button onclick="exportHistoryCSV()" title="Exportar CSV" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple">
+                        <button onclick="exportHistoryCSV()" title="Exportar CSV" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant text-xs flex items-center justify-center m3-btn">
                             <i class="fa-solid fa-file-csv"></i>
                         </button>
-                        <label title="Importar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant text-m3-onSurfaceVariant text-xs flex items-center justify-center m3-ripple cursor-pointer">
+                        <label title="Importar JSON" class="w-8 h-8 rounded-full bg-m3-surfaceVariant dark:bg-m3-darkSurfaceVariant text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant text-xs flex items-center justify-center m3-btn cursor-pointer">
                             <i class="fa-solid fa-upload"></i>
                             <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importHistoryJSON(event)">
                         </label>
-                        <button onclick="clearHistory()" title="Borrar todo" class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 text-xs flex items-center justify-center m3-ripple">
+                        <button onclick="clearAllHistory()" title="Borrar Historial" class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-center m3-btn">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-m3-outline"></i>
-                    <input type="text" id="historySearch" oninput="renderHistory()" placeholder="Buscar en registros..." class="w-full pl-9 pr-4 py-2.5 bg-m3-surface dark:bg-m3-darkSurface border border-m3-outline/30 rounded-full text-xs outline-none focus:border-m3-primary transition">
+                <!-- Chips de Filtros (Material 3 Filter Chips) -->
+                <div class="flex gap-2 overflow-x-auto pb-1 pt-1 custom-scrollbar text-xs">
+                    <button onclick="filterCategory('all')" id="catBtn-all" class="cat-filter-btn active-cat bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition">
+                        Todos
+                    </button>
+                    <button onclick="filterCategory('url')" id="catBtn-url" class="cat-filter-btn bg-m3-surfaceVariant/80 dark:bg-m3-darkSurfaceVariant/80 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition">
+                        <i class="fa-solid fa-link mr-1 text-[10px]"></i> URLs
+                    </button>
+                    <button onclick="filterCategory('wifi')" id="catBtn-wifi" class="cat-filter-btn bg-m3-surfaceVariant/80 dark:bg-m3-darkSurfaceVariant/80 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition">
+                        <i class="fa-solid fa-wifi mr-1 text-[10px]"></i> Wi-Fi
+                    </button>
+                    <button onclick="filterCategory('text')" id="catBtn-text" class="cat-filter-btn bg-m3-surfaceVariant/80 dark:bg-m3-darkSurfaceVariant/80 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition">
+                        <i class="fa-solid fa-align-left mr-1 text-[10px]"></i> Texto
+                    </button>
                 </div>
 
-                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
-                    <button onclick="filterHistory('all')" id="histChip-all" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-primary text-m3-onPrimary dark:bg-m3-darkPrimary dark:text-m3-darkOnPrimary whitespace-nowrap m3-ripple">Todos</button>
-                    <button onclick="filterHistory('url')" id="histChip-url" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">URLs</button>
-                    <button onclick="filterHistory('wifi')" id="histChip-wifi" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Wi-Fi</button>
-                    <button onclick="filterHistory('text')" id="histChip-text" class="hist-chip px-3.5 py-1.5 rounded-full font-medium bg-m3-surfaceVariant text-m3-onSurfaceVariant dark:bg-m3-darkSurfaceVariant dark:text-m3-darkOnSurfaceVariant whitespace-nowrap m3-ripple">Texto</button>
-                </div>
-
+                <!-- Lista de Ítems del Historial -->
                 <div id="historyList" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <!-- Se llena dinámicamente -->
                 </div>
 
                 <div id="emptyHistoryState" class="text-center py-8 space-y-2 hidden">
-                    <i class="fa-solid fa-folder-open text-3xl text-m3-outline/40"></i>
-                    <p class="text-xs text-m3-onSurfaceVariant font-medium">No se encontraron registros en el historial.</p>
+                    <i class="fa-solid fa-inbox text-3xl text-m3-outline/40"></i>
+                    <p class="text-xs text-m3-onSurfaceVariant/70 dark:text-m3-darkOnSurfaceVariant/70 font-medium">No hay registros almacenados.</p>
                 </div>
             </div>
         </section>
 
     </main>
 
+    <!-- Notificación Toast Flotante (Android Snackbar Style) -->
     <div id="androidToast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-full text-xs font-medium shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
         <i id="toastIcon" class="fa-solid fa-circle-info text-m3-darkPrimary dark:text-m3-primary"></i>
-        <span id="toastMessage">Mensaje</span>
+        <span id="toastMessage">Notificación</span>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-m3-surface/95 dark:bg-m3-darkSurface/95 backdrop-blur-lg border-t border-m3-outline/10 z-40">
+    <!-- Navegación Inferior Fija (Material Design 3 Navigation Bar) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-m3-surface/95 dark:bg-m3-darkSurface/95 backdrop-blur-lg border-t border-m3-outline/10 z-50">
         <div class="max-w-md mx-auto px-6 py-2 flex justify-around items-center">
             
-            <button onclick="switchTab('Scan')" id="nav-Scan" class="flex flex-col items-center group w-20">
-                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnDarkPrimaryContainer transition-all duration-200">
-                    <i class="fa-solid fa-camera text-sm"></i>
+            <!-- Tab 1: Escáner -->
+            <button onclick="switchTab('scan')" id="nav-scan" class="flex flex-col items-center group w-16">
+                <div class="nav-indicator w-12 h-8 rounded-full flex items-center justify-center bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnPrimaryContainer transition-all duration-200">
+                    <i class="fa-solid fa-camera text-base"></i>
                 </div>
-                <span class="text-[11px] font-semibold mt-1 text-m3-onSurface dark:text-m3-darkOnSurface">Escanear</span>
+                <span class="text-[11px] font-medium mt-1 text-m3-onSurface dark:text-m3-darkOnSurface">Escanear</span>
             </button>
 
-            <button onclick="switchTab('Generate')" id="nav-Generate" class="flex flex-col items-center group w-20">
-                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
-                    <i class="fa-solid fa-qrcode text-sm"></i>
+            <!-- Tab 2: Generar -->
+            <button onclick="switchTab('generate')" id="nav-generate" class="flex flex-col items-center group w-16">
+                <div class="nav-indicator w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
+                    <i class="fa-solid fa-qrcode text-base"></i>
                 </div>
                 <span class="text-[11px] font-medium mt-1 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Generar</span>
             </button>
 
-            <button onclick="switchTab('History')" id="nav-History" class="flex flex-col items-center group w-20">
-                <div class="nav-pill w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
-                    <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+            <!-- Tab 3: Historial -->
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center group w-16">
+                <div class="nav-indicator w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200">
+                    <i class="fa-solid fa-clock-rotate-left text-base"></i>
                 </div>
                 <span class="text-[11px] font-medium mt-1 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant">Historial</span>
             </button>
 
         </div>
     </nav>
-<script src="recursos/funciones.js"></script>
+
+    <!-- LÓGICA JAVASCRIPT INTEGRADA -->
+    <script>
+        // Variables globales
+        let html5QrCode = null;
+        let isScanning = false;
+        let camerasList = [];
+        let currentCameraIndex = 0;
+        let currentFilter = 'all';
+        let recentResult = '';
+        let generatedQrObj = null;
+
+        // Variables de Zoom de Hardware de Cámara
+        let cameraCapabilities = null;
+        let currentZoom = 1;
+
+        // Claves de LocalStorage
+        const STORAGE_KEY = 'qr_master_history_v2';
+        const THEME_KEY = 'qr_master_theme';
+
+        // Inicialización
+        document.addEventListener("DOMContentLoaded", () => {
+            initTheme();
+            renderHistory();
+            
+            window.addEventListener('resize', () => {
+                if (isScanning && html5QrCode) {
+                    stopScanner().then(() => startScanner());
+                }
+            });
+        });
+
+        /* ================= MODO OSCURO ================= */
+        function initTheme() {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (isDark) {
+                icon.className = 'fa-solid fa-sun text-amber-400 text-base';
+            } else {
+                icon.className = 'fa-solid fa-moon text-slate-700 text-base';
+            }
+        }
+
+        /* ================= TOAST / SNACKBAR MATERIAL ================= */
+        function showToast(message, iconClass = 'fa-circle-info') {
+            const toast = document.getElementById('androidToast');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = message;
+            iconEl.className = `fa-solid ${iconClass}`;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        /* ================= NAVEGACIÓN Y TABS ================= */
+        function switchTab(tabName) {
+            const scanSection = document.getElementById('scanSection');
+            const generateSection = document.getElementById('generateSection');
+            const historySection = document.getElementById('historySection');
+
+            if (tabName !== 'scan' && isScanning) {
+                stopScanner();
+            }
+
+            scanSection.classList.add('hidden');
+            generateSection.classList.add('hidden');
+            historySection.classList.add('hidden');
+
+            ['scan', 'generate', 'history'].forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                const indicator = btn.querySelector('.nav-indicator');
+                const text = btn.querySelector('span');
+
+                indicator.className = 'nav-indicator w-12 h-8 rounded-full flex items-center justify-center text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant transition-all duration-200';
+                text.className = 'text-[11px] font-medium mt-1 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant';
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            const activeIndicator = activeBtn.querySelector('.nav-indicator');
+            const activeText = activeBtn.querySelector('span');
+
+            activeIndicator.className = 'nav-indicator w-12 h-8 rounded-full flex items-center justify-center bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnPrimaryContainer transition-all duration-200';
+            activeText.className = 'text-[11px] font-medium mt-1 text-m3-onSurface dark:text-m3-darkOnSurface';
+
+            if (tabName === 'scan') scanSection.classList.remove('hidden');
+            if (tabName === 'generate') generateSection.classList.remove('hidden');
+            if (tabName === 'history') {
+                historySection.classList.remove('hidden');
+                renderHistory();
+            }
+        }
+
+        /* ================= LÓGICA DE ESCÁNER Y ZOOM DE CÁMARA ================= */
+        async function startScanner() {
+            try {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("qr-reader");
+                }
+
+                camerasList = await Html5Qrcode.getCameras();
+                if (!camerasList || camerasList.length === 0) {
+                    showToast("No se encontraron cámaras", "fa-triangle-exclamation");
+                    return;
+                }
+
+                currentCameraIndex = camerasList.findIndex(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera'));
+                if (currentCameraIndex === -1) currentCameraIndex = 0;
+
+                const selectedCam = camerasList[currentCameraIndex].id;
+
+                document.getElementById('scannerPlaceholder').classList.add('hidden');
+                document.getElementById('startScanBtn').classList.add('hidden');
+                document.getElementById('stopScanBtn').classList.remove('hidden');
+
+                if (camerasList.length > 1) {
+                    document.getElementById('cameraControls').classList.remove('hidden');
+                }
+
+                await html5QrCode.start(
+                    selectedCam,
+                    {
+                        fps: 10,
+                        qrbox: { width: 230, height: 230 },
+                        aspectRatio: 1.0
+                    },
+                    onScanSuccess,
+                    onScanFailure
+                );
+
+                isScanning = true;
+                showToast("Escáner activo", "fa-camera");
+
+                // Detectar capacidades de Zoom del Hardware de la Cámara
+                setTimeout(() => {
+                    initCameraZoomCapabilities();
+                }, 600);
+
+            } catch (err) {
+                console.error("Error al iniciar cámara:", err);
+                showToast("Error al acceder a la cámara", "fa-triangle-exclamation");
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode && isScanning) {
+                try {
+                    await html5QrCode.stop();
+                } catch(e) { console.error(e); }
+                isScanning = false;
+                document.getElementById('scannerPlaceholder').classList.remove('hidden');
+                document.getElementById('startScanBtn').classList.remove('hidden');
+                document.getElementById('stopScanBtn').classList.add('hidden');
+                document.getElementById('cameraControls').classList.add('hidden');
+                document.getElementById('zoomControlContainer').classList.add('hidden');
+                cameraCapabilities = null;
+            }
+        }
+
+        async function switchCamera() {
+            if (camerasList.length < 2) return;
+            currentCameraIndex = (currentCameraIndex + 1) % camerasList.length;
+            await stopScanner();
+            startScanner();
+        }
+
+        function initCameraZoomCapabilities() {
+            try {
+                if (!html5QrCode) return;
+                const track = html5QrCode.getRunningTrackCameraCapabilities ? html5QrCode.getRunningTrackCameraCapabilities() : null;
+                
+                // Intentar obtener capacidades directamente del track de video activo si html5-qrcode no lo expone directamente
+                let videoTrack = null;
+                const videoEl = document.querySelector('#qr-reader video');
+                if (videoEl && videoEl.srcObject) {
+                    videoTrack = videoEl.srcObject.getVideoTracks()[0];
+                }
+
+                if (videoTrack && videoTrack.getCapabilities) {
+                    cameraCapabilities = videoTrack.getCapabilities();
+                } else if (html5QrCode.getRunningTrackCapabilities) {
+                    cameraCapabilities = html5QrCode.getRunningTrackCapabilities();
+                }
+
+                if (cameraCapabilities && cameraCapabilities.zoom) {
+                    const minZoom = cameraCapabilities.zoom.min || 1;
+                    const maxZoom = cameraCapabilities.zoom.max || 5;
+                    const stepZoom = cameraCapabilities.zoom.step || 0.1;
+
+                    const rangeInput = document.getElementById('zoomRangeInput');
+                    rangeInput.min = minZoom;
+                    rangeInput.max = maxZoom;
+                    rangeInput.step = stepZoom;
+                    
+                    currentZoom = minZoom;
+                    rangeInput.value = currentZoom;
+                    document.getElementById('zoomValueText5') || (document.getElementById('zoomValueText').textContent = currentZoom.toFixed(1) + 'x');
+
+                    document.getElementById('zoomControlContainer').classList.remove('hidden');
+                } else {
+                    document.getElementById('zoomControlContainer').classList.add('hidden');
+                }
+            } catch (e) {
+                console.log("Zoom de hardware no soportado en este dispositivo:", e);
+                document.getElementById('zoomControlContainer').classList.add('hidden');
+            }
+        }
+
+        async function onZoomSliderChange(val) {
+            currentZoom = parseFloat(val);
+            document.getElementById('zoomValueText').textContent = currentZoom.toFixed(1) + 'x';
+            applyZoomToCamera(currentZoom);
+        }
+
+        async function adjustZoom(delta) {
+            if (!cameraCapabilities || !cameraCapabilities.zoom) return;
+            const minZ = cameraCapabilities.zoom.min || 1;
+            const maxZ = cameraCapabilities.zoom.max || 5;
+            
+            currentZoom = Math.min(maxZ, Math.max(minZ, currentZoom + delta));
+            
+            const rangeInput = document.getElementById('zoomRangeInput');
+            rangeInput.value = currentZoom;
+            document.getElementById('zoomValueText').textContent = currentZoom.toFixed(1) + 'x';
+            
+            applyZoomToCamera(currentZoom);
+        }
+
+        async function applyZoomToCamera(zoomVal) {
+            try {
+                const videoEl = document.querySelector('#qr-reader video');
+                if (videoEl && videoEl.srcObject) {
+                    const track = videoEl.srcObject.getVideoTracks()[0];
+                    if (track && track.applyConstraints) {
+                        await track.applyConstraints({
+                            advanced: [{ zoom: zoomVal }]
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("No se pudo aplicar el zoom de hardware:", e);
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Nota: Se ha eliminado totalmente la vibración (navigator.vibrate) por solicitud expresa.
+            recentResult = decodedText;
+            saveToHistory(decodedText);
+            displayRecentResult(decodedText);
+            showToast("Código detectado", "fa-circle-check");
+        }
+
+        function onScanFailure(error) {
+            // Silencioso para evitar saturación
+        }
+
+        function scanFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+
+            html5QrCode.scanFile(file, true)
+                .then(decodedText => {
+                    recentResult = decodedText;
+                    saveToHistory(decodedText);
+                    displayRecentResult(decodedText);
+                    showToast("QR leído desde archivo", "fa-image");
+                })
+                .catch(err => {
+                    showToast("No se encontró código en la imagen", "fa-circle-xmark");
+                });
+        }
+
+        /* ================= MOSTRAR RESULTADO RECIENTE ================= */
+        function displayRecentResult(text) {
+            const card = document.getElementById('recentResultCard');
+            const textEl = document.getElementById('recentText');
+            const actionBtn = document.getElementById('recentActionBtn');
+            const categoryBadge = document.getElementById('recentCategoryBadge');
+
+            const category = detectCategory(text);
+
+            textEl.textContent = text;
+            categoryBadge.textContent = category.toUpperCase();
+
+            if (category === 'url') {
+                actionBtn.classList.remove('hidden');
+            } else {
+                actionBtn.classList.add('hidden');
+            }
+
+            card.classList.remove('hidden');
+        }
+
+        function detectCategory(text) {
+            if (/^https?:\/\//i.test(text) || /^www\./i.test(text)) {
+                return 'url';
+            }
+            if (/^WIFI:/i.test(text)) {
+                return 'wifi';
+            }
+            return 'text';
+        }
+
+        function copyRecentText() {
+            if (!recentResult) return;
+            navigator.clipboard.writeText(recentResult).then(() => {
+                showToast("Copiado al portapapeles", "fa-copy");
+            });
+        }
+
+        function openRecentLink() {
+            if (!recentResult) return;
+            let url = recentResult;
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'http://' + url;
+            }
+            window.open(url, '_blank');
+        }
+
+        /* ================= GENERADOR QR ================= */
+        function generateQRCode() {
+            const input = document.getElementById('qrInputText').value.trim();
+            if (!input) {
+                showToast("Escribe algo para generar el QR", "fa-triangle-exclamation");
+                return;
+            }
+
+            const container = document.getElementById('qrcode');
+            container.innerHTML = '';
+
+            generatedQrObj = new QRCode(container, {
+                text: input,
+                width: 180,
+                height: 180,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('generatedQrContainer').classList.remove('hidden');
+            saveToHistory(input);
+            showToast("Código QR generado", "fa-qrcode");
+        }
+
+        function downloadQRCode() {
+            const img = document.querySelector('#qrcode img');
+            if (!img) return;
+
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = img.src;
+            link.click();
+            showToast("Descargando imagen...", "fa-download");
+        }
+
+        /* ================= HISTORIAL LOCALSTORAGE ================= */
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveToHistory(content) {
+            let history = getHistory();
+            
+            if (history.length > 0 && history[0].content === content) {
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                content: content,
+                category: detectCategory(content),
+                timestamp: new Date().toLocaleString()
+            };
+
+            history.unshift(newItem);
+            if (history.length > 100) history.pop();
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function deleteHistoryItem(id) {
+            let history = getHistory().filter(item => item.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            renderHistory();
+            showToast("Registro eliminado", "fa-trash-can");
+        }
+
+        function clearAllHistory() {
+            if (confirm("¿Deseas borrar todo el historial local?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                renderHistory();
+                showToast("Historial borrado", "fa-trash-can");
+            }
+        }
+
+        function filterCategory(cat) {
+            currentFilter = cat;
+            
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.className = 'cat-filter-btn bg-m3-surfaceVariant/80 dark:bg-m3-darkSurfaceVariant/80 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition';
+            });
+
+            const activeBtn = document.getElementById(`catBtn-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = 'cat-filter-btn active-cat bg-m3-primary dark:bg-m3-darkPrimary text-m3-onPrimary dark:text-m3-darkOnPrimary px-4 py-2 rounded-full whitespace-nowrap font-medium m3-btn transition';
+            }
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('historyList');
+            const emptyEl = document.getElementById('emptyHistoryState');
+            if (!listEl) return;
+
+            let history = getHistory();
+
+            if (currentFilter !== 'all') {
+                history = history.filter(i => i.category === currentFilter);
+            }
+
+            listEl.innerHTML = '';
+
+            if (history.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            } else {
+                emptyEl.classList.add('hidden');
+            }
+
+            history.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'p-3.5 bg-m3-surface dark:bg-m3-darkSurface rounded-3xl border border-m3-outline/20 flex flex-col space-y-2 shadow-sm';
+                
+                let iconClass = 'fa-align-left';
+                if (item.category === 'url') iconClass = 'fa-link';
+                if (item.category === 'wifi') iconClass = 'fa-wifi';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnPrimaryContainer flex items-center gap-1">
+                            <i class="fa-solid ${iconClass}"></i> ${item.category}
+                        </span>
+                        <span class="text-[10px] text-m3-onSurfaceVariant/70 dark:text-m3-darkOnSurfaceVariant/70">${item.timestamp}</span>
+                    </div>
+                    <p class="text-xs font-mono text-m3-onSurface dark:text-m3-darkOnSurface break-all line-clamp-3">${escapeHtml(item.content)}</p>
+                    <div class="flex justify-end gap-1.5 pt-1">
+                        <button onclick="copyText('${escapeJs(item.content)}')" class="w-8 h-8 rounded-full bg-m3-surfaceVariant/60 dark:bg-m3-darkSurfaceVariant/60 text-m3-onSurfaceVariant dark:text-m3-darkOnSurfaceVariant flex items-center justify-center text-xs m3-btn" title="Copiar">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                        ${item.category === 'url' ? `
+                            <button onclick="openUrl('${escapeJs(item.content)}')" class="w-8 h-8 rounded-full bg-m3-primaryContainer text-m3-onPrimaryContainer dark:bg-m3-darkPrimaryContainer dark:text-m3-darkOnPrimaryContainer flex items-center justify-center text-xs m3-btn" title="Abrir enlace">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="deleteHistoryItem(${item.id})" class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 flex items-center justify-center text-xs m3-btn" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        /* ================= EXPORTACIÓN E IMPORTACIÓN ================= */
+        function exportHistoryJSON() {
+            const data = getHistory();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qr_history_${Date.now()}.json`;
+            a.click();
+            showToast("Exportado en formato JSON", "fa-download");
+        }
+
+        function exportHistoryCSV() {
+            const data = getHistory();
+            if (data.length === 0) {
+                showToast("No hay historial para exportar", "fa-triangle-exclamation");
+                return;
+            }
+            let csv = "ID,Fecha,Categoria,Contenido\n";
+            data.forEach(item => {
+                csv += `"${item.id}","${item.timestamp}","${item.category}","${item.content.replace(/"/g, '""')}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qr_history_${Date.now()}.csv`;
+            a.click();
+            showToast("Exportado en formato CSV", "fa-file-csv");
+        }
+
+        function importHistoryJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+                        renderHistory();
+                        showToast("Historial importado con éxito", "fa-upload");
+                    } else {
+                        showToast("Formato de JSON inválido", "fa-circle-xmark");
+                    }
+                } catch (err) {
+                    showToast("Error al leer archivo JSON", "fa-circle-xmark");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /* ================= AUXILIARES ================= */
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copiado al portapapeles", "fa-copy");
+            });
+        }
+
+        function openUrl(url) {
+            let href = url;
+            if (!/^https?:\/\//i.test(href)) {
+                href = 'http://' + href;
+            }
+            window.open(href, '_blank');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJs(str) {
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+    </script>
 </body>
 </html>
